@@ -1,14 +1,40 @@
-import 'react-app-polyfill/ie11';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { Thing } from '../.';
+import { useSpeech, SpeechProvider } from '../.';
 
 const App = () => {
+  const { voices, setVoice, speak } = useSpeech();
+
   return (
     <div>
-      <Thing />
+      {voices.length && (
+        <select
+          onChange={event => {
+            const voiceURI = event.target.value;
+            setVoice(voiceURI);
+          }}
+        >
+          {voices.map(voice => (
+            <option value={voice.voiceURI}>{voice.name}</option>
+          ))}
+        </select>
+      )}
+
+      <button
+        onClick={() => {
+          speak('hello');
+        }}
+        type="button"
+      >
+        Hello
+      </button>
     </div>
   );
 };
 
-ReactDOM.render(<App />, document.getElementById('root'));
+ReactDOM.render(
+  <SpeechProvider>
+    <App />
+  </SpeechProvider>,
+  document.getElementById('root')
+);
