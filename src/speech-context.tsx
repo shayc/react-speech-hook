@@ -79,16 +79,17 @@ export function useSpeech() {
   function getSpeechOptions() {
     const voice = getVoice(voiceURI);
 
-    function onBoundary(event: SpeechSynthesisEvent) {
+    function handleBoundary(event: SpeechSynthesisEvent) {
       const { charIndex, charLength, elapsedTime, name } = event;
       setBoundary({ charIndex, charLength, elapsedTime, name });
     }
 
-    return { lang, pitch, rate, onBoundary, voice, volume };
+    return { lang, pitch, rate, onboundary: handleBoundary, voice, volume };
   }
 
   function speak(text: string): Promise<SpeechSynthesisEvent> {
     setIsSpeaking(true);
+
     const options = getSpeechOptions();
 
     return asyncSpeech.speak(text, options);

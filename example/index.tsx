@@ -15,7 +15,9 @@ const App = () => {
           }}
         >
           {voices.map(voice => (
-            <option value={voice.voiceURI}>{voice.name}</option>
+            <option value={voice.voiceURI} key={voice.voiceURI}>
+              {voice.name}
+            </option>
           ))}
         </select>
       )}
