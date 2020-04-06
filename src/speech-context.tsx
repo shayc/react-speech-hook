@@ -41,7 +41,6 @@ interface SpeechContext {
 }
 
 interface SpeechProviderProps {
-  children?: ReactNode;
   options?: {
     lang: string;
     pitch: number;
@@ -82,10 +81,6 @@ export function useSpeech() {
 
   function getVoice(voiceURI: string): SpeechSynthesisVoice | null {
     return voices.find(v => v.voiceURI === voiceURI) || null;
-  }
-
-  function setVoice(voiceURI: string): void {
-    setVoiceURI(voiceURI);
   }
 
   function getSpeechOptions() {
@@ -133,7 +128,7 @@ export function useSpeech() {
     setLang,
     setPitch,
     setRate,
-    setVoice,
+    setVoice: setVoiceURI,
     setVolume,
     speak,
     voices,
