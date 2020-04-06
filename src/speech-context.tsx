@@ -2,7 +2,6 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useRef,
   FunctionComponent,
   ReactNode,
 } from 'react';
@@ -21,11 +20,13 @@ import {
   createAsyncSpeech,
 } from '@shayc/async-speech';
 
-interface SpeechContextInterface {
+interface SpeechContext {
   boundary: any;
   isPaused: boolean;
   isSpeaking: boolean;
-  options: SpeechOptions;
+  lang: string;
+  pitch: number;
+  rate: number;
   setBoundary: Function;
   setIsPaused: Function;
   setIsSpeaking: Function;
@@ -36,26 +37,21 @@ interface SpeechContextInterface {
   setVoiceURI: Function;
   voices: SpeechSynthesisVoice[];
   voiceURI: string;
-}
-
-interface SpeechOptions {
-  lang: string;
-  pitch: number;
-  rate: number;
   volume: number;
-  [key: string]: string | number;
 }
 
 interface SpeechProviderProps {
   children?: ReactNode;
-  lang?: string;
-  pitch?: number;
-  rate?: number;
-  volume?: number;
+  options?: {
+    lang: string;
+    pitch: number;
+    rate: number;
+    volume: number;
+  };
 }
 
 const asyncSpeech = createAsyncSpeech(window.speechSynthesis);
-const SpeechContext = React.createContext<SpeechContextInterface | null>(null);
+const SpeechContext = React.createContext<SpeechContext | null>(null);
 
 export function useSpeech() {
   const context = useContext(SpeechContext);
@@ -68,7 +64,9 @@ export function useSpeech() {
     boundary,
     isPaused,
     isSpeaking,
-    options,
+    lang,
+    pitch,
+    rate,
     setBoundary,
     setIsPaused,
     setIsSpeaking,
@@ -79,24 +77,29 @@ export function useSpeech() {
     setVoiceURI,
     voices,
     voiceURI,
+    volume,
   } = context;
 
-  function getSpeechOptions() {
-    const voice = voices.find(
-      (v: SpeechSynthesisVoice) => v.voiceURI === voiceURI
-    );
-
-    const eventHandlers: Pick<SpeechSynthesisUtterance, 'onboundary'> = {
-      onboundary(event) {
-        const { charIndex, charLength, elapsedTime, name } = event;
-        setBoundary({ charIndex, charLength, elapsedTime, name });
-      },
-    };
-
-    return { ...options, ...eventHandlers, voice };
+  function getVoice(voiceURI: string): SpeechSynthesisVoice | null {
+    return voices.find(v => v.voiceURI === voiceURI) || null;
   }
 
-  function speak(text: string) {
+  function setVoice(voiceURI: string): void {
+    setVoiceURI(voiceURI);
+  }
+
+  function getSpeechOptions() {
+    const voice = getVoice(voiceURI);
+
+    function onBoundary(event: SpeechSynthesisEvent) {
+      const { charIndex, charLength, elapsedTime, name } = event;
+      setBoundary({ charIndex, charLength, elapsedTime, name });
+    }
+
+    return { lang, pitch, rate, onBoundary, voice, volume };
+  }
+
+  function speak(text: string): Promise<SpeechSynthesisEvent> {
     setIsSpeaking(true);
     const options = getSpeechOptions();
 
@@ -125,13 +128,12 @@ export function useSpeech() {
     cancel,
     isPaused,
     isSpeaking,
-    options,
     pause,
     resume,
     setLang,
     setPitch,
     setRate,
-    setVoiceURI,
+    setVoice,
     setVolume,
     speak,
     voices,
@@ -141,13 +143,17 @@ export function useSpeech() {
 
 export const SpeechProvider: FunctionComponent<SpeechProviderProps> = ({
   children,
-  lang = 'en',
-  pitch = DEFAULT_PITCH,
-  rate = DEFAULT_RATE,
-  volume = DEFAULT_VOLUME,
+  options = {
+    lang: 'en',
+    pitch: DEFAULT_PITCH,
+    rate: DEFAULT_RATE,
+    volume: DEFAULT_VOLUME,
+  },
 }) => {
-  const optionsRef = useRef({ lang, pitch, rate, volume });
-  const [options, setOptions] = useState({ lang, pitch, rate, volume });
+  const [lang, setLang] = useState(options.lang);
+  const [pitch, setPitch] = useState(options.pitch);
+  const [rate, setRate] = useState(options.rate);
+  const [volume, setVolume] = useState(options.volume);
 
   const [voices, setVoices] = useState([] as SpeechSynthesisVoice[]);
   const [voiceURI, setVoiceURI] = useState('');
@@ -167,11 +173,11 @@ export const SpeechProvider: FunctionComponent<SpeechProviderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (options.lang && voices.length) {
-      const defaultVoice = getDefaultVoiceByLang(options.lang, voices);
+    if (lang && voices.length) {
+      const defaultVoice = getDefaultVoiceByLang(lang, voices);
       setVoiceURI(defaultVoice.voiceURI);
     }
-  }, [options.lang, voices]);
+  }, [lang, voices]);
 
   function getDefaultVoiceByLang(lang: string, voices: SpeechSynthesisVoice[]) {
     const voicesByLang = voices.filter(v => v.lang.includes(lang));
@@ -182,42 +188,14 @@ export const SpeechProvider: FunctionComponent<SpeechProviderProps> = ({
     return defaultVoice;
   }
 
-  function setOption(
-    key: 'lang' | 'pitch' | 'rate' | 'volume',
-    value: string | number
-  ) {
-    optionsRef.current = { ...optionsRef.current, [key]: value };
-
-    setOptions(opts => ({ ...opts, [key]: value }));
-  }
-
-  function setLang(lang: string) {
-    setOption('lang', lang);
-  }
-
-  function setPitch(pitch: number) {
-    setOption('pitch', pitch);
-  }
-
-  function setRate(rate: number) {
-    setOption('rate', rate);
-  }
-
-  function setVolume(volume: number) {
-    setOption('volume', volume);
-  }
-
   // TODO: Potential perf issue, new context ref on each render - use React.useMemo
   const value = {
-    MAX_PITCH,
-    MIN_PITCH,
-    MAX_RATE,
-    MIN_RATE,
-    MAX_VOLUME,
-    MIN_VOLUME,
     boundary,
     isPaused,
     isSpeaking,
+    lang,
+    pitch,
+    rate,
     setBoundary,
     setIsPaused,
     setIsSpeaking,
@@ -228,7 +206,7 @@ export const SpeechProvider: FunctionComponent<SpeechProviderProps> = ({
     setVolume,
     voices,
     voiceURI,
-    options: options,
+    volume,
   };
 
   return (
@@ -237,24 +215,22 @@ export const SpeechProvider: FunctionComponent<SpeechProviderProps> = ({
 };
 
 SpeechProvider.propTypes = {
-  /**
-   *
-   */
-  children: PropTypes.node,
-  /**
-   *
-   */
-  lang: PropTypes.string,
-  /**
-   * Speech pitch.
-   */
-  pitch: PropTypes.number,
-  /**
-   * Speech rate.
-   */
-  rate: PropTypes.number,
-  /**
-   * Speech volume.
-   */
-  volume: PropTypes.number,
+  options: PropTypes.shape({
+    /**
+     * Speech language
+     */
+    lang: PropTypes.string.isRequired,
+    /**
+     * Speech pitch
+     */
+    pitch: PropTypes.number.isRequired,
+    /**
+     * Speech rate
+     */
+    rate: PropTypes.number.isRequired,
+    /**
+     * Speech volume
+     */
+    volume: PropTypes.number.isRequired,
+  }),
 };
