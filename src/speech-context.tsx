@@ -3,11 +3,17 @@ import React, {
   useState,
   useEffect,
   FunctionComponent,
-  ReactNode,
 } from 'react';
 import PropTypes from 'prop-types';
 
 import {
+  DEFAULT_PITCH,
+  DEFAULT_RATE,
+  DEFAULT_VOLUME,
+  createAsyncSpeech,
+} from '@shayc/async-speech';
+
+export {
   MIN_PITCH,
   MIN_RATE,
   MIN_VOLUME,
@@ -17,7 +23,6 @@ import {
   DEFAULT_PITCH,
   DEFAULT_RATE,
   DEFAULT_VOLUME,
-  createAsyncSpeech,
 } from '@shayc/async-speech';
 
 interface SpeechContext {
