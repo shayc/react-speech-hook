@@ -72,24 +72,32 @@ export function useSpeech() {
     volume,
   } = context;
 
-  function getVoice(voiceURI: string): SpeechSynthesisVoice | null {
+  function getVoiceByURI(voiceURI: string): SpeechSynthesisVoice | null {
     return voices.find(v => v.voiceURI === voiceURI) || null;
   }
 
+  function getLanguages() {
+    return Array.from(new Set(voices.map(voice => voice.lang)));
+  }
+
   function getSpeechOptions() {
-    const voice = getVoice(voiceURI);
+    const eventHandlers: Partial<SpeechSynthesisUtterance> = {
+      onboundary(event) {
+        const { charIndex, charLength, elapsedTime, name } = event;
+        setBoundary({ charIndex, charLength, elapsedTime, name });
+      },
+      onend() {
+        cancel();
+      },
+    };
 
-    function handleBoundary(event: SpeechSynthesisEvent) {
-      const { charIndex, charLength, elapsedTime, name } = event;
-      setBoundary({ charIndex, charLength, elapsedTime, name });
-    }
+    const voice = getVoiceByURI(voiceURI);
 
-    return { lang, pitch, rate, onboundary: handleBoundary, voice, volume };
+    return { ...eventHandlers, lang, pitch, rate, voice, volume };
   }
 
   function speak(text: string): Promise<SpeechSynthesisEvent> {
     setIsSpeaking(true);
-
     const options = getSpeechOptions();
 
     return asyncSpeech.speak(text, options);
@@ -115,6 +123,7 @@ export function useSpeech() {
   return {
     boundary,
     cancel,
+    languages: getLanguages(),
     isPaused,
     isSpeaking,
     pause,
