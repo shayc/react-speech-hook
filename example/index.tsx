@@ -25,7 +25,9 @@ const App = () => {
     <div>
       <div>Is speaking: {isSpeaking.toString()}</div>
       <div>Is paused: {isPaused.toString()}</div>
-
+      <div>
+        Boundary: <pre>{JSON.stringify(boundary)}</pre>
+      </div>
       <div>
         {!isSpeaking && (
           <button
@@ -83,20 +85,23 @@ const App = () => {
       )}
 
       {voices.length && (
-        <ul>
-          {voices.map(voice => (
-            <li key={voice.voiceURI}>
-              <button
-                onClick={event => {
-                  setVoice(voice.voiceURI);
-                  speak('Hello');
-                }}
-              >
-                {voice.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div>
+          Voices: {voices.length}
+          <ul>
+            {voices.map(voice => (
+              <li key={voice.voiceURI}>
+                <button
+                  onClick={event => {
+                    setVoice(voice.voiceURI);
+                    speak('Hello');
+                  }}
+                >
+                  {voice.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
